@@ -25,7 +25,7 @@ class ConfigManager
     @config ||= {}
 
     if File.exist?(CONFIG_FILE)
-      File.each_line(CONFIG_FILE) do |line|
+      File.read(CONFIG_FILE).each_line do |line|
         key, value = line.chomp.split('=')
         @config[key.to_sym] = value
       end

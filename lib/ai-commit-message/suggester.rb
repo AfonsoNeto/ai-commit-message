@@ -10,10 +10,10 @@ module AiCommitMessage
       @git_current_branch = git_current_branch
     end
 
-    def generate_commit_message
-      url = URI('http://localhost:11434/api/generate')
+    def generate_commit_message(url:, model:)
+      url = URI(url)
       body = {
-        model: 'qwen2.5-coder:7b',
+        model: model,
         prompt: "Create a concise git commit message with no more than 250 characters. Exclude anything unnecessary such as translation, backticks characters or multiple suggestions, since your entire response will be passed directly into git commit. Consider the following messages as example to follow: #{@git_log_output}.
             The First [#XXX] option is the branch name. The current branch name is: #{@git_current_branch}. Now Do it for the following git diff: #{@git_diff_output}",
         stream: false,
