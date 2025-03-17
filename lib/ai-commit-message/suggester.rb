@@ -11,7 +11,7 @@ module AiCommitMessage
     end
 
     def generate_commit_message(url:, model:)
-      url = URI(url)
+      url = URI(url + '/api/generate')
       body = {
         model: model,
         prompt: "Create a concise git commit message with no more than 250 characters. Exclude anything unnecessary such as translation, backticks characters or multiple suggestions, since your entire response will be passed directly into git commit. Consider the following messages as example to follow: #{@git_log_output}.
