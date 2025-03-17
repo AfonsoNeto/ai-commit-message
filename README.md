@@ -53,7 +53,7 @@ ai-commit-message config
 ```
 
 This interactive prompt allows you to set:
-- **API URL**: The endpoint for your AI model (defaults to `http://localhost:11434/api/generate`)
+- **API URL**: The endpoint for your AI model (defaults to `http://localhost:11434`)
 - **Model name**: The AI model to use (defaults to `qwen2.5-coder:7b`, which I personally recommend)
 
 ### Command Line Options
@@ -78,7 +78,7 @@ The gem:
 The gem stores your configuration in `~/.ai-commit-message.conf`. You can manually edit this file if needed. Example:
 
 ```bash
-url=http://localhost:11434/api/generate
+url=http://localhost:11434
 model=qwen2.5-coder:7b
 ```
 
