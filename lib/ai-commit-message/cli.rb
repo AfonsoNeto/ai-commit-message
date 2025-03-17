@@ -50,8 +50,6 @@ module AiCommitMessage
     def model_to_be_used(options_model)
       return options_model if !options_model.empty? && (options_model != DEFAULT_MODEL_NAME)
 
-      puts "COnfig model: #{ConfigManager.get_model}"
-
       ConfigManager.get_model || DEFAULT_MODEL_NAME
     end
   end
