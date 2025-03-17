@@ -3,17 +3,17 @@ require 'fileutils'
 class ConfigManager
   CONFIG_FILE = File.expand_path('~/.ai-commit-message.conf')
 
-  def self.get_url = config['url']
+  def self.get_url = config[:url]
 
   def self.set_url(url)
-    config['url'] = url
+    config[:url] = url
     save_config
   end
 
-  def self.get_model = config['model']
+  def self.get_model = config[:model]
 
   def self.set_model(model)
-    config['model'] = model
+    config[:model] = model
     save_config
   end
 

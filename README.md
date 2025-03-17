@@ -1,4 +1,4 @@
-# AI Commit Message Generator
+# AI git commit message
 
 A Ruby gem that automatically generates concise and meaningful git commit messages using AI models via [Ollama](https://github.com/ollama/ollama) or any OpenAI-compatible API.
 
