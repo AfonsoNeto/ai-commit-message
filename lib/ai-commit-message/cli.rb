@@ -32,14 +32,14 @@ module AiCommitMessage
 
       suggester = AiCommitMessage::Suggester.new(git_diff_output[0, MAX_DIFF_LENGTH], git_log_output, git_current_branch)
       commit_message = suggester.generate_commit_message(
-        url: url_to_be_used(options.url),
-        model: model_to_be_used(options.model),
-        length: options.length,
-        conventional: options.conventional
+        url: url_to_be_used(options[:url]),
+        model: model_to_be_used(options[:model]),
+        length: options[:length],
+        conventional: options[:conventional]
       )
 
       puts commit_message
-      return unless options.apply
+      return unless options[:apply]
 
       prompt = TTY::Prompt.new
       return unless prompt.yes?("Commit with this message?", default: true)
@@ -54,7 +54,7 @@ module AiCommitMessage
     method_option :url, type: :string
 
     def models
-      puts AiCommitMessage::Suggester.list_models(url_to_be_used(options.url))
+      puts AiCommitMessage::Suggester.list_models(url_to_be_used(options[:url]))
     rescue AiCommitMessage::Suggester::Error => e
       warn e.message
       exit 1
