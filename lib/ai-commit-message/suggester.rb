@@ -11,6 +11,9 @@ module AiCommitMessage
     OPEN_TIMEOUT = 5
     READ_TIMEOUT = 120
     DEFAULT_LENGTH = 72
+    # Thinking models (qwen3 and friends) spend tokens reasoning before the
+    # answer; the budget must leave room for both.
+    MAX_TOKENS = 600
 
     def self.list_models(url)
       uri = URI("#{normalized_base(url)}/v1/models")
@@ -51,7 +54,11 @@ module AiCommitMessage
     def generate_commit_message(url:, model:, length: DEFAULT_LENGTH, conventional: false)
       response = post_json(chat_completions_uri(url), request_body(model, length, conventional))
       json = self.class.parse_response(response)
-      clean_commit_message(json.dig('choices', 0, 'message', 'content'), length)
+      message = clean_commit_message(json.dig('choices', 0, 'message', 'content'), length)
+      return message unless message.empty?
+
+      raise ApiError,
+            'Model returned no commit message content. Try a non-thinking model or a different model.'
     end
 
     private
@@ -64,7 +71,7 @@ module AiCommitMessage
           { role: 'user', content: user_prompt(length) }
         ],
         temperature: 0.3,
-        max_tokens: [length * 2, 100].max,
+        max_tokens: MAX_TOKENS,
         stream: false
       }
     end
@@ -90,10 +97,12 @@ module AiCommitMessage
     def branch_line
       @git_current_branch.strip.empty? ? '' : "The current branch name is: #{@git_current_branch.strip}"
     end
-    # Models tend to wrap answers in code fences or quotes and sometimes offer
-    # alternatives; reduce everything to a single clean subject line.
+    # Models tend to wrap answers in code fences or quotes, inline their
+    # reasoning in <think> blocks, or offer alternatives; reduce everything to
+    # a single clean subject line.
     def clean_commit_message(raw, length)
       line = raw.to_s
+        .gsub(%r{<think>.*?</think>}m, '')
         .gsub('`', '')
         .each_line.map(&:strip).reject(&:empty?).first.to_s
       line = line.sub(/\A["'](.*)["']\z/, '\1')

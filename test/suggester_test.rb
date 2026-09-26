@@ -38,6 +38,19 @@ class SuggesterTest < Minitest::Test
     assert_equal '', @suggester.send(:clean_commit_message, nil, 72)
   end
 
+  def test_clean_commit_message_strips_inline_think_blocks
+    raw = "<think>Let me decide on wording.</think>\nfix: handle nil diff"
+    assert_equal 'fix: handle nil diff', @suggester.send(:clean_commit_message, raw, 72)
+  end
+
+  def test_generate_commit_message_raises_when_content_is_empty
+    with_mock_server(openai_chat_response('')) do |port|
+      assert_raises AiCommitMessage::Suggester::ApiError do
+        @suggester.generate_commit_message(url: "http://127.0.0.1:#{port}", model: 'm')
+      end
+    end
+  end
+
   def test_generate_commit_message_returns_cleaned_content
     with_mock_server(openai_chat_response("```\nfix: avoid nil crash\n```")) do |port|
       message = @suggester.generate_commit_message(url: "http://127.0.0.1:#{port}", model: 'test-model')
