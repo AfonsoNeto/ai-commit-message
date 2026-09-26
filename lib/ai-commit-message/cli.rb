@@ -7,6 +7,7 @@ module AiCommitMessage
   class CLI < Thor
     DEFAULT_URL = 'http://localhost:11434'
     DEFAULT_MODEL_NAME = 'qwen2.5-coder:7b'
+    MAX_DIFF_LENGTH = 12_000
 
     desc "commit", "Generate git commit message"
     method_option :url, type: :string, default: DEFAULT_URL
@@ -25,7 +26,7 @@ module AiCommitMessage
       url = url_to_be_used(options.url)
       model = model_to_be_used(options.model)
 
-      suggester = AiCommitMessage::Suggester.new(git_diff_output, git_log_output, git_current_branch)
+      suggester = AiCommitMessage::Suggester.new(git_diff_output[0, MAX_DIFF_LENGTH], git_log_output, git_current_branch)
       commit_message = suggester.generate_commit_message(url:, model:)
 
       puts commit_message
