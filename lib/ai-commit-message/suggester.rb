@@ -18,19 +18,19 @@ module AiCommitMessage
       @git_current_branch = git_current_branch
     end
 
-    def generate_commit_message(url:, model:, length: DEFAULT_LENGTH)
-      response = post_json(chat_completions_uri(url), request_body(model))
+    def generate_commit_message(url:, model:, length: DEFAULT_LENGTH, conventional: false)
+      response = post_json(chat_completions_uri(url), request_body(model, length, conventional))
       json = parse_response(response)
       clean_commit_message(json.dig('choices', 0, 'message', 'content'), length)
     end
 
     private
 
-    def request_body(model)
+    def request_body(model, length, conventional)
       {
         model: model,
         messages: [
-          { role: 'system', content: system_prompt },
+          { role: 'system', content: system_prompt(conventional) },
           { role: 'user', content: user_prompt(length) }
         ],
         temperature: 0.3,
@@ -39,21 +39,27 @@ module AiCommitMessage
       }
     end
 
-    def system_prompt
-      'You write git commit messages. Respond with a single line containing ' \
-        'only the commit message: no quotes, no backticks, no markdown, no explanations.'
+    def system_prompt(conventional)
+      prompt = 'You write git commit messages. Respond with a single line containing ' \
+               'only the commit message: no quotes, no backticks, no markdown, no explanations.'
+      prompt += ' Use the Conventional Commits format (type: description).' if conventional
+      prompt
     end
 
     def user_prompt(length)
       <<~PROMPT
         Write a concise git commit message with no more than #{length} characters for the staged changes below.
         Follow the style of these recent commit messages: #{@git_log_output}
-        The current branch name is: #{@git_current_branch}
+        #{branch_line}
         Git diff:
         #{@git_diff_output}
       PROMPT
     end
 
+    # git branch --show-current returns nothing on a detached HEAD
+    def branch_line
+      @git_current_branch.strip.empty? ? '' : "The current branch name is: #{@git_current_branch.strip}"
+    end
     # Models tend to wrap answers in code fences or quotes and sometimes offer
     # alternatives; reduce everything to a single clean subject line.
     def clean_commit_message(raw, length)
