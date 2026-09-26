@@ -11,31 +11,55 @@ module AiCommitMessage
     end
 
     def generate_commit_message(url:, model:)
-      url = URI(url + '/api/generate')
-      body = {
+      response = post_json(chat_completions_uri(url), request_body(model))
+      json = JSON.parse(response.body)
+      json.dig('choices', 0, 'message', 'content')
+    end
+
+    private
+
+    def request_body(model)
+      {
         model: model,
-        prompt: "Create a concise git commit message with no more than 250 characters. Exclude anything unnecessary such as translation, backticks characters or multiple suggestions, since your entire response will be passed directly into git commit. Consider the following messages as example to follow: #{@git_log_output}.
-            The First [#XXX] option is the branch name. The current branch name is: #{@git_current_branch}. Now Do it for the following git diff: #{@git_diff_output}",
-        stream: false,
-        options: { temperature: 0.8 }
+        messages: [
+          { role: 'system', content: system_prompt },
+          { role: 'user', content: user_prompt }
+        ],
+        temperature: 0.3,
+        max_tokens: 100,
+        stream: false
       }
-      json_body = body.to_json
-      headers = { 'Content-Type' => 'application/json' }
+    end
 
-      http = Net::HTTP.new(url.host, url.port)
-      request = Net::HTTP::Post.new(url)
-      request.body = json_body
-      headers.each { |key, value| request[key] = value }
-      response = http.request(request)
+    def system_prompt
+      'You write git commit messages. Respond with a single line containing ' \
+        'only the commit message: no quotes, no backticks, no markdown, no explanations.'
+    end
 
-      begin
-        json = JSON.parse(response.body)
-        return json['response'] if json
-      rescue JSON::ParserError => e
-        puts "Failed to parse API response as JSON: #{e.message}"
-      end
+    def user_prompt
+      <<~PROMPT
+        Write a concise git commit message with no more than 250 characters for the staged changes below.
+        Follow the style of these recent commit messages: #{@git_log_output}
+        The current branch name is: #{@git_current_branch}
+        Git diff:
+        #{@git_diff_output}
+      PROMPT
+    end
 
-      nil
+    # Accepts base URLs with or without a trailing /v1 and with or without a
+    # trailing slash, e.g. http://localhost:11434, http://localhost:1234/v1/
+    def chat_completions_uri(url)
+      base = url.chomp('/')
+      base = base.sub(%r{/v1$}, '')
+      URI("#{base}/v1/chat/completions")
+    end
+
+    def post_json(uri, body)
+      http = Net::HTTP.new(uri.host, uri.port)
+      request = Net::HTTP::Post.new(uri)
+      request['Content-Type'] = 'application/json'
+      request.body = body.to_json
+      http.request(request)
     end
   end
 end
