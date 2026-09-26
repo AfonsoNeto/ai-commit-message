@@ -12,8 +12,8 @@ module AiCommitMessage
     READ_TIMEOUT = 120
     DEFAULT_LENGTH = 72
     # Thinking models (qwen3 and friends) spend tokens reasoning before the
-    # answer; the budget must leave room for both.
-    MAX_TOKENS = 600
+    # answer; the budget must leave room for both or content comes back empty.
+    MAX_TOKENS = 2048
 
     def self.list_models(url)
       uri = URI("#{normalized_base(url)}/v1/models")
