@@ -12,6 +12,9 @@ module AiCommitMessage
     desc "commit", "Generate git commit message"
     method_option :url, type: :string
     method_option :model, type: :string
+    method_option :length, type: :numeric, default: Suggester::DEFAULT_LENGTH
+    method_option :conventional, type: :boolean, default: false
+    method_option :apply, type: :boolean, default: false
 
     def commit
       git_diff_output = `git diff --cached --no-color`
@@ -23,13 +26,24 @@ module AiCommitMessage
       git_log_output = `git log --format=%s -n 30`
       git_current_branch = `git branch --show-current`
 
-      url = url_to_be_used(options.url)
-      model = model_to_be_used(options.model)
-
       suggester = AiCommitMessage::Suggester.new(git_diff_output[0, MAX_DIFF_LENGTH], git_log_output, git_current_branch)
-      commit_message = suggester.generate_commit_message(url:, model:)
+      commit_message = suggester.generate_commit_message(
+        url: url_to_be_used(options.url),
+        model: model_to_be_used(options.model),
+        length: options.length,
+        conventional: options.conventional
+      )
 
       puts commit_message
+      return unless options.apply
+
+      prompt = TTY::Prompt.new
+      return unless prompt.yes?("Commit with this message?", default: true)
+
+      system('git', 'commit', '-m', commit_message)
+    rescue AiCommitMessage::Suggester::Error => e
+      warn e.message
+      exit 1
     end
 
     desc "config", "Set global configs. API URL and Model name"
