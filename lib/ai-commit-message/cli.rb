@@ -46,12 +46,27 @@ module AiCommitMessage
       exit 1
     end
 
+    desc "models", "List models available on the configured API URL"
+    method_option :url, type: :string
+
+    def models
+      puts AiCommitMessage::Suggester.list_models(url_to_be_used(options.url))
+    rescue AiCommitMessage::Suggester::Error => e
+      warn e.message
+      exit 1
+    end
+
     desc "config", "Set global configs. API URL and Model name"
     def config
       prompt = TTY::Prompt.new
 
       url = prompt.ask("API URL:", default: ConfigManager.get_url || DEFAULT_URL)
-      model = prompt.ask("Model name:", default: ConfigManager.get_model || DEFAULT_MODEL_NAME)
+      available_models = AiCommitMessage::Suggester.list_models(url) rescue nil
+      model = if available_models && !available_models.empty?
+        prompt.select("Model name:", available_models)
+      else
+        prompt.ask("Model name:", default: ConfigManager.get_model || DEFAULT_MODEL_NAME)
+      end
 
       ConfigManager.set_url(url)
       ConfigManager.set_model(model)
