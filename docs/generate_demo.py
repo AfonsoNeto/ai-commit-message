@@ -37,9 +37,9 @@ def emit(data, delay=0.04):
 
 def type_command(cmd):
     emit(PROMPT)
-    for ch in cmd:
-        emit(ch, 0.035)
-    emit("\r\n", 0.15)
+    for i in range(0, len(cmd), 4):
+        emit(cmd[i:i + 4], 0.05)
+    emit("\r\n", 0.12)
 
 
 def main():
@@ -109,7 +109,7 @@ def main():
     gif_path = os.path.join(here, "demo.gif")
     subprocess.run(
         [
-            "agg", "--speed", "1.4", "--idle-time-limit", "1",
+            "agg", "--speed", "2", "--idle-time-limit", "1",
             "--theme", "github-dark", "--font-size", "15",
             cast_path, gif_path,
         ],
