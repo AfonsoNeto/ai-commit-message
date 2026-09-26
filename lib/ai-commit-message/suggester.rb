@@ -12,6 +12,36 @@ module AiCommitMessage
     READ_TIMEOUT = 120
     DEFAULT_LENGTH = 72
 
+    def self.list_models(url)
+      uri = URI("#{normalized_base(url)}/v1/models")
+      http = Net::HTTP.new(uri.host, uri.port)
+      http.open_timeout = OPEN_TIMEOUT
+      http.read_timeout = READ_TIMEOUT
+
+      begin
+        response = http.request(Net::HTTP::Get.new(uri))
+      rescue Errno::ECONNREFUSED, Errno::EHOSTUNREACH, SocketError
+        raise ConnectionError,
+              "Could not connect to #{uri.host}:#{uri.port}. Is your local LLM server running?"
+      end
+
+      parse_response(response).fetch('data', []).map { |m| m['id'] }.compact.sort
+    end
+
+    def self.parse_response(response)
+      unless response.is_a?(Net::HTTPSuccess)
+        raise ApiError, "API returned HTTP #{response.code}: #{response.body.to_s[0, 200]}"
+      end
+
+      JSON.parse(response.body)
+    rescue JSON::ParserError
+      raise ApiError, 'API response was not valid JSON'
+    end
+
+    def self.normalized_base(url)
+      url.chomp('/').sub(%r{/v1$}, '')
+    end
+
     def initialize(git_diff_output, git_log_output, git_current_branch)
       @git_diff_output = git_diff_output
       @git_log_output = git_log_output
@@ -20,7 +50,7 @@ module AiCommitMessage
 
     def generate_commit_message(url:, model:, length: DEFAULT_LENGTH, conventional: false)
       response = post_json(chat_completions_uri(url), request_body(model, length, conventional))
-      json = parse_response(response)
+      json = self.class.parse_response(response)
       clean_commit_message(json.dig('choices', 0, 'message', 'content'), length)
     end
 
@@ -73,9 +103,7 @@ module AiCommitMessage
     # Accepts base URLs with or without a trailing /v1 and with or without a
     # trailing slash, e.g. http://localhost:11434, http://localhost:1234/v1/
     def chat_completions_uri(url)
-      base = url.chomp('/')
-      base = base.sub(%r{/v1$}, '')
-      URI("#{base}/v1/chat/completions")
+      URI("#{self.class.normalized_base(url)}/v1/chat/completions")
     end
 
     def post_json(uri, body)
@@ -92,16 +120,6 @@ module AiCommitMessage
         raise ConnectionError,
               "Could not connect to #{uri.host}:#{uri.port}. Is your local LLM server running?"
       end
-    end
-
-    def parse_response(response)
-      unless response.is_a?(Net::HTTPSuccess)
-        raise ApiError, "API returned HTTP #{response.code}: #{response.body.to_s[0, 200]}"
-      end
-
-      JSON.parse(response.body)
-    rescue JSON::ParserError
-      raise ApiError, 'API response was not valid JSON'
     end
   end
 end
