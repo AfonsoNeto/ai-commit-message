@@ -1,6 +1,8 @@
 # AI git commit message
 
-A Ruby gem that automatically generates concise and meaningful git commit messages using AI models via [Ollama](https://github.com/ollama/ollama) or any OpenAI-compatible API.
+A Ruby gem that automatically generates concise and meaningful git commit messages using a local LLM via [Ollama](https://github.com/ollama/ollama), LM Studio, llama.cpp `llama-server`, or any other OpenAI-compatible API.
+
+![Terminal demo](docs/demo.gif)
 
 ## Installation
 
@@ -26,7 +28,7 @@ bundle install
 
 - Ruby 3.0 or newer
 - Git repository
-- [Ollama](https://github.com/ollama/ollama) model running locally or other OpenAI-compatible API endpoint
+- A local LLM server: [Ollama](https://github.com/ollama/ollama), [LM Studio](https://lmstudio.ai/), [llama.cpp `llama-server`](https://github.com/ggml-org/llama.cpp), or any other OpenAI-compatible endpoint
 
 ## Usage
 
@@ -44,17 +46,37 @@ This will:
 3. Consider your current branch name
 4. Generate an appropriate commit message
 
+### Creating the commit directly
+
+Review the generated message and commit with it in one step:
+
+```bash
+ai-commit-message commit --apply
+```
+
+### Conventional Commits
+
+Ask the model to follow the [Conventional Commits](https://www.conventionalcommits.org/) format (`feat:`, `fix:`, `chore:`, ...):
+
+```bash
+ai-commit-message commit --conventional
+```
+
 ### Configuration
 
-You can configure the gem using the built-in configuration command:
+Configure the API URL and model interactively:
 
 ```bash
 ai-commit-message config
 ```
 
-This interactive prompt allows you to set:
-- **API URL**: The endpoint for your AI model (defaults to `http://localhost:11434`)
-- **Model name**: The AI model to use (defaults to `qwen2.5-coder:7b`, which I personally recommend)
+If your server is reachable, the model prompt becomes a picker populated with the models available on that server.
+
+List the models available on your server:
+
+```bash
+ai-commit-message models
+```
 
 ### Command Line Options
 
@@ -64,14 +86,26 @@ Override configuration settings directly:
 ai-commit-message commit --url=http://your-api-endpoint --model=your-model-name
 ```
 
+All options:
+
+| Option | Description | Default |
+| --- | --- | --- |
+| `--url` | Base URL of the OpenAI-compatible API | `http://localhost:11434` |
+| `--model` | Model name | `qwen3:8b` |
+| `--length` | Maximum message length in characters | `72` |
+| `--conventional` | Use Conventional Commits format | off |
+| `--apply` | Commit the generated message after confirmation | off |
+
 ## How It Works
 
 The gem:
-1. Collects your staged changes using `git diff --cached`
+1. Collects your staged changes using `git diff --cached` (capped at 12,000 characters so large diffs don't overwhelm a local model's context)
 2. Retrieves your recent commit history for context
 3. Identifies your current branch name
-4. Sends this information to the specified AI model
-5. Returns a concise, contextual commit message (limited to 250 characters)
+4. Sends a chat request to `{url}/v1/chat/completions` — the standard OpenAI-compatible endpoint
+5. Cleans the model output (strips code fences, quotes and reasoning blocks) and prints a single-line commit message (limited to 72 characters by default)
+
+The URL accepts base addresses with or without a trailing `/v1` and `/`, so `http://localhost:11434` (Ollama), `http://localhost:1234/v1` (LM Studio) and `http://localhost:8080` (llama.cpp `llama-server`) all work as-is.
 
 ## Configuration File
 
@@ -79,29 +113,32 @@ The gem stores your configuration in `~/.ai-commit-message.conf`. You can manual
 
 ```bash
 url=http://localhost:11434
-model=qwen2.5-coder:7b
+model=qwen3:8b
 ```
 
 ## Models
 
-The default configuration uses Ollama with the `qwen2.5-coder:7b` model, but you can use any model available through your API endpoint.
+The default configuration uses Ollama with the `qwen3:8b` model, but you can use any model available through your API endpoint.
 
 ### Recommended Models
 
-- **qwen2.5-coder:7b**: Good balance of quality and speed (default)
-- **llama3:8b**: Excellent for general commit messages
-- **codellama:7b**: Specialized for code-related commits
+- **qwen3:8b**: Good balance of quality and speed (default). Note that it is a thinking model, so expect a few seconds of reasoning before the message appears
+- **qwen2.5-coder:7b**: Faster, non-thinking coding model
+- **qwen3.5:4b**: Current-generation small model for modest hardware
+- **gemma4:e4b**: Compact general-purpose option
+- **llama3.1:8b**: Solid general-purpose choice
 
 ## Contributing
 
 1. Fork the repository
 2. Create your feature branch: `git checkout -b my-new-feature`
 3. Install dependencies: `bundle install`
-4. Make your changes and add tests if applicable
-5. Commit your changes: `git commit -m 'Add some feature'`
-6. Push to the branch: `git push origin my-new-feature`
-7. Submit a pull request
+4. Run the tests: `bundle exec rake test`
+5. Make your changes and add tests if applicable
+6. Commit your changes: `git commit -m 'Add some feature'`
+7. Push to the branch: `git push origin my-new-feature`
+8. Submit a pull request
 
 ## License
 
-This gem is available as open source free to use/alter without restrictions.
+This gem is available as open source under the terms of the [MIT License](LICENSE).
