@@ -14,6 +14,11 @@ module AiCommitMessage
 
     def commit
       git_diff_output = `git diff --cached --no-color`
+      if git_diff_output.strip.empty?
+        warn 'Nothing is staged. Stage your changes with `git add` first.'
+        exit 1
+      end
+
       git_log_output = `git log --format=%s -n 30`
       git_current_branch = `git branch --show-current`
 
