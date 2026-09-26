@@ -4,6 +4,13 @@ require 'json'
 
 module AiCommitMessage
   class Suggester
+    class Error < StandardError; end
+    class ConnectionError < Error; end
+    class ApiError < Error; end
+
+    OPEN_TIMEOUT = 5
+    READ_TIMEOUT = 120
+
     def initialize(git_diff_output, git_log_output, git_current_branch)
       @git_diff_output = git_diff_output
       @git_log_output = git_log_output
@@ -12,7 +19,7 @@ module AiCommitMessage
 
     def generate_commit_message(url:, model:)
       response = post_json(chat_completions_uri(url), request_body(model))
-      json = JSON.parse(response.body)
+      json = parse_response(response)
       json.dig('choices', 0, 'message', 'content')
     end
 
@@ -56,10 +63,28 @@ module AiCommitMessage
 
     def post_json(uri, body)
       http = Net::HTTP.new(uri.host, uri.port)
+      http.open_timeout = OPEN_TIMEOUT
+      http.read_timeout = READ_TIMEOUT
       request = Net::HTTP::Post.new(uri)
       request['Content-Type'] = 'application/json'
       request.body = body.to_json
-      http.request(request)
+
+      begin
+        http.request(request)
+      rescue Errno::ECONNREFUSED, Errno::EHOSTUNREACH, SocketError => e
+        raise ConnectionError,
+              "Could not connect to #{uri.host}:#{uri.port}. Is your local LLM server running?"
+      end
+    end
+
+    def parse_response(response)
+      unless response.is_a?(Net::HTTPSuccess)
+        raise ApiError, "API returned HTTP #{response.code}: #{response.body.to_s[0, 200]}"
+      end
+
+      JSON.parse(response.body)
+    rescue JSON::ParserError
+      raise ApiError, 'API response was not valid JSON'
     end
   end
 end
