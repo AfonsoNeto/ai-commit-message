@@ -5,6 +5,10 @@ require_relative 'config_manager'
 
 module AiCommitMessage
   class CLI < Thor
+    def self.exit_on_failure?
+      true
+    end
+
     DEFAULT_URL = 'http://localhost:11434'
     DEFAULT_MODEL_NAME = 'qwen3:8b'
     MAX_DIFF_LENGTH = 12_000
