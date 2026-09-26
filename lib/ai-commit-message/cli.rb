@@ -10,8 +10,8 @@ module AiCommitMessage
     MAX_DIFF_LENGTH = 12_000
 
     desc "commit", "Generate git commit message"
-    method_option :url, type: :string, default: DEFAULT_URL
-    method_option :model, type: :string, default: DEFAULT_MODEL_NAME
+    method_option :url, type: :string
+    method_option :model, type: :string
 
     def commit
       git_diff_output = `git diff --cached --no-color`
@@ -48,15 +48,11 @@ module AiCommitMessage
     private
 
     def url_to_be_used(options_url)
-      return options_url if !options_url.empty? && (options_url != DEFAULT_URL)
-
-      ConfigManager.get_url || DEFAULT_URL
+      options_url || ConfigManager.get_url || DEFAULT_URL
     end
 
     def model_to_be_used(options_model)
-      return options_model if !options_model.empty? && (options_model != DEFAULT_MODEL_NAME)
-
-      ConfigManager.get_model || DEFAULT_MODEL_NAME
+      options_model || ConfigManager.get_model || DEFAULT_MODEL_NAME
     end
   end
 end
