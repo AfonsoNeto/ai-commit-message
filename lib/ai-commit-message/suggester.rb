@@ -10,6 +10,7 @@ module AiCommitMessage
 
     OPEN_TIMEOUT = 5
     READ_TIMEOUT = 120
+    DEFAULT_LENGTH = 72
 
     def initialize(git_diff_output, git_log_output, git_current_branch)
       @git_diff_output = git_diff_output
@@ -17,10 +18,10 @@ module AiCommitMessage
       @git_current_branch = git_current_branch
     end
 
-    def generate_commit_message(url:, model:)
+    def generate_commit_message(url:, model:, length: DEFAULT_LENGTH)
       response = post_json(chat_completions_uri(url), request_body(model))
       json = parse_response(response)
-      json.dig('choices', 0, 'message', 'content')
+      clean_commit_message(json.dig('choices', 0, 'message', 'content'), length)
     end
 
     private
@@ -30,10 +31,10 @@ module AiCommitMessage
         model: model,
         messages: [
           { role: 'system', content: system_prompt },
-          { role: 'user', content: user_prompt }
+          { role: 'user', content: user_prompt(length) }
         ],
         temperature: 0.3,
-        max_tokens: 100,
+        max_tokens: [length * 2, 100].max,
         stream: false
       }
     end
@@ -43,14 +44,24 @@ module AiCommitMessage
         'only the commit message: no quotes, no backticks, no markdown, no explanations.'
     end
 
-    def user_prompt
+    def user_prompt(length)
       <<~PROMPT
-        Write a concise git commit message with no more than 250 characters for the staged changes below.
+        Write a concise git commit message with no more than #{length} characters for the staged changes below.
         Follow the style of these recent commit messages: #{@git_log_output}
         The current branch name is: #{@git_current_branch}
         Git diff:
         #{@git_diff_output}
       PROMPT
+    end
+
+    # Models tend to wrap answers in code fences or quotes and sometimes offer
+    # alternatives; reduce everything to a single clean subject line.
+    def clean_commit_message(raw, length)
+      line = raw.to_s
+        .gsub('`', '')
+        .each_line.map(&:strip).reject(&:empty?).first.to_s
+      line = line.sub(/\A["'](.*)["']\z/, '\1')
+      line.gsub(/\s+/, ' ')[0, length].to_s.strip
     end
 
     # Accepts base URLs with or without a trailing /v1 and with or without a
