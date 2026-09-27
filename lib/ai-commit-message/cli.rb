@@ -13,12 +13,12 @@ module AiCommitMessage
     DEFAULT_MODEL_NAME = 'qwen3:8b'
     MAX_DIFF_LENGTH = 12_000
 
-    desc "commit", "Generate git commit message"
+    desc "commit", "Generate a commit message and commit with it after confirmation"
     method_option :url, type: :string
     method_option :model, type: :string
     method_option :length, type: :numeric, default: Suggester::DEFAULT_LENGTH
     method_option :conventional, type: :boolean, default: false
-    method_option :apply, type: :boolean, default: false
+    method_option :message_only, type: :boolean, default: false
 
     def commit
       git_diff_output = `git diff --cached --no-color`
@@ -39,10 +39,17 @@ module AiCommitMessage
       )
 
       puts commit_message
-      return unless options[:apply]
+      return if options[:message_only]
 
       prompt = TTY::Prompt.new
-      return unless prompt.yes?("Commit with this message?", default: true)
+      begin
+        # tty-prompt takes the default on EOF, which would silently commit
+        # in non-interactive runs; treat a closed stdin as "no".
+        confirmed = !$stdin.eof? && prompt.yes?("Commit with this message?", default: true)
+      rescue TTY::Reader::InputInterrupt
+        confirmed = false
+      end
+      return unless confirmed
 
       system('git', 'commit', '-m', commit_message)
     rescue AiCommitMessage::Suggester::Error => e
