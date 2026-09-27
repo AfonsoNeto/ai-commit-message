@@ -38,6 +38,17 @@ class SuggesterTest < Minitest::Test
     assert_equal '', @suggester.send(:clean_commit_message, nil, 72)
   end
 
+  def test_build_http_enables_ssl_verification_for_https
+    http = AiCommitMessage::Suggester.build_http(URI('https://api.example.com/v1/chat/completions'))
+    assert http.use_ssl?
+    assert_equal OpenSSL::SSL::VERIFY_PEER, http.verify_mode
+  end
+
+  def test_build_http_keeps_plain_http_local
+    http = AiCommitMessage::Suggester.build_http(URI('http://localhost:11434/v1/chat/completions'))
+    refute http.use_ssl?
+  end
+
   def test_clean_commit_message_strips_inline_think_blocks
     raw = "<think>Let me decide on wording.</think>\nfix: handle nil diff"
     assert_equal 'fix: handle nil diff', @suggester.send(:clean_commit_message, raw, 72)

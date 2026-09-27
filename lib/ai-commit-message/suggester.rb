@@ -1,6 +1,7 @@
 require 'net/http'
 require 'uri'
 require 'json'
+require 'openssl'
 
 module AiCommitMessage
   class Suggester
@@ -17,9 +18,7 @@ module AiCommitMessage
 
     def self.list_models(url)
       uri = URI("#{normalized_base(url)}/v1/models")
-      http = Net::HTTP.new(uri.host, uri.port)
-      http.open_timeout = OPEN_TIMEOUT
-      http.read_timeout = READ_TIMEOUT
+      http = build_http(uri)
 
       begin
         response = http.request(Net::HTTP::Get.new(uri))
@@ -39,6 +38,15 @@ module AiCommitMessage
       JSON.parse(response.body)
     rescue JSON::ParserError
       raise ApiError, 'API response was not valid JSON'
+    end
+
+    def self.build_http(uri)
+      http = Net::HTTP.new(uri.host, uri.port)
+      http.use_ssl = uri.scheme == 'https'
+      http.verify_mode = OpenSSL::SSL::VERIFY_PEER
+      http.open_timeout = OPEN_TIMEOUT
+      http.read_timeout = READ_TIMEOUT
+      http
     end
 
     def self.normalized_base(url)
@@ -116,9 +124,7 @@ module AiCommitMessage
     end
 
     def post_json(uri, body)
-      http = Net::HTTP.new(uri.host, uri.port)
-      http.open_timeout = OPEN_TIMEOUT
-      http.read_timeout = READ_TIMEOUT
+      http = self.class.build_http(uri)
       request = Net::HTTP::Post.new(uri)
       request['Content-Type'] = 'application/json'
       request.body = body.to_json
