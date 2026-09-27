@@ -34,7 +34,7 @@ bundle install
 
 ### Basic Usage
 
-Generate a commit message for your staged changes:
+Generate a commit message for your staged changes and commit with it after a confirmation:
 
 ```bash
 ai-commit-message commit
@@ -45,13 +45,14 @@ This will:
 2. Review your recent commit history for style consistency
 3. Consider your current branch name
 4. Generate an appropriate commit message
+5. Ask for confirmation and create the commit (answering "no" keeps the printed message so you can edit or copy it)
 
-### Creating the commit directly
+### Message only
 
-Review the generated message and commit with it in one step:
+If you just want the suggested message without the confirmation prompt — e.g. to pipe it somewhere or review it yourself — use `--message-only`:
 
 ```bash
-ai-commit-message commit --apply
+ai-commit-message commit --message-only
 ```
 
 ### Conventional Commits
@@ -94,7 +95,7 @@ All options:
 | `--model` | Model name | `qwen3:8b` |
 | `--length` | Maximum message length in characters | `72` |
 | `--conventional` | Use Conventional Commits format | off |
-| `--apply` | Commit the generated message after confirmation | off |
+| `--message-only` | Print the message without the commit confirmation prompt | off |
 
 ## How It Works
 
