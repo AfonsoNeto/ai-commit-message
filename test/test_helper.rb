@@ -21,11 +21,12 @@ module TestHelper
         )
         client.close
       end
-      yield server.addr[1]
-    ensure
-      thread&.join
-      server.close
-    end
+    yield server.addr[1]
+  ensure
+    # Close the server first so a thread still blocked in accept can exit.
+    server&.close
+    thread&.join(1)
+  end
   end
 
   def openai_chat_response(content)
