@@ -61,12 +61,12 @@ def main():
     run("git add calc.py")
 
     # Run the real commands and capture their real outputs.
-    suggest = run("ai-commit-message commit")
+    suggest = run("ai-commit-message commit --message-only")
     if suggest.returncode != 0:
         sys.exit(f"demo generation failed: {suggest.stderr.strip()}")
     message = suggest.stdout.strip()
 
-    apply_out = run("ai-commit-message commit --apply", input_="y\n")
+    apply_out = run("ai-commit-message commit", input_="y\n")
     if apply_out.returncode != 0:
         sys.exit(f"demo apply failed: {apply_out.stderr.strip()}")
 
@@ -78,7 +78,7 @@ def main():
     emit("", 0.9)  # the model is thinking
     emit(message + "\r\n\r\n", 0.6)
 
-    type_command("ai-commit-message commit --apply")
+    type_command("ai-commit-message commit")
     emit("", 0.9)
     emit(message + "\r\n", 0.4)
     emit("Commit with this message? (\x1b[1mY\x1b[0m/n) ", 0.5)
