@@ -34,5 +34,8 @@ class ConfigManager
     @config
   end
 
-  def self.save_config = File.write(CONFIG_FILE, config.map { |key, value| "#{key}=#{value}" }.join("\n"))
+  def self.save_config
+    File.write(CONFIG_FILE, config.map { |key, value| "#{key}=#{value}" }.join("\n"))
+    FileUtils.chmod(0600, CONFIG_FILE)
+  end
 end

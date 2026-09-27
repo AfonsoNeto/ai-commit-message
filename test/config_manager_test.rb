@@ -41,6 +41,11 @@ class ConfigManagerTest < Minitest::Test
     assert_equal 'gemma3:4b', ConfigManager.get_model
   end
 
+  def test_config_file_is_owner_only
+    ConfigManager.set_url('http://localhost:1234')
+    assert_equal 0600, File.stat(@config_file.path).mode & 0777
+  end
+
   private
 
   def stub_constant
