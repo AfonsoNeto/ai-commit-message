@@ -107,10 +107,14 @@ module AiCommitMessage
     end
     # Models tend to wrap answers in code fences or quotes, inline their
     # reasoning in <think> blocks, or offer alternatives; reduce everything to
-    # a single clean subject line.
+    # a single clean subject line. Control characters are stripped so that a
+    # prompt-injected model cannot smuggle terminal escapes into git history.
     def clean_commit_message(raw, length)
       line = raw.to_s
         .gsub(%r{<think>.*?</think>}m, '')
+        .gsub(/\e\][^\x07\e]*(?:\x07|\e\\)/, '')
+        .gsub(/\e\[[0-9;:]*[A-Za-z]/, '')
+        .gsub(/[\e\a\b\v\f\r]/, '')
         .gsub('`', '')
         .each_line.map(&:strip).reject(&:empty?).first.to_s
       line = line.sub(/\A["'](.*)["']\z/, '\1')

@@ -38,6 +38,11 @@ class SuggesterTest < Minitest::Test
     assert_equal '', @suggester.send(:clean_commit_message, nil, 72)
   end
 
+  def test_clean_commit_message_strips_ansi_escape_sequences
+    raw = "\e[31mfix:\e[0m handle \e[2Knil \e]0;title\a crash"
+    assert_equal 'fix: handle nil crash', @suggester.send(:clean_commit_message, raw, 72)
+  end
+
   def test_build_http_enables_ssl_verification_for_https
     http = AiCommitMessage::Suggester.build_http(URI('https://api.example.com/v1/chat/completions'))
     assert http.use_ssl?
