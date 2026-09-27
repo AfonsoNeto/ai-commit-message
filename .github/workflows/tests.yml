@@ -1,0 +1,26 @@
+name: Tests
+
+on:
+  push:
+    branches: [master, main, maintenance]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        ruby: ['3.1', '3.2', '3.3', '3.4']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          bundler-cache: true
+      - name: Run tests
+        run: bundle exec rake test
+      - name: Scan dependencies for vulnerabilities
+        run: |
+          gem install bundler-audit --no-document
+          bundler-audit check
