@@ -1,5 +1,8 @@
 # AI git commit message
 
+[![Gem Version](https://img.shields.io/gem/v/ai-commit-message)](https://rubygems.org/gems/ai-commit-message)
+[![Gem Downloads](https://img.shields.io/gem/dt/ai-commit-message)](https://rubygems.org/gems/ai-commit-message)
+
 A Ruby gem that automatically generates concise and meaningful git commit messages using a local LLM via [Ollama](https://github.com/ollama/ollama), LM Studio, llama.cpp `llama-server`, or any other OpenAI-compatible API.
 
 ![Terminal demo](docs/demo.gif)
