@@ -74,7 +74,7 @@ def main():
     EVENTS.append([0.0, "o", ""])
     emit("\x1b[2m# ai-commit-message: AI commit messages from a local LLM\x1b[0m\r\n\r\n", 0.8)
 
-    type_command("ai-commit-message commit")
+    type_command("ai-commit-message commit --message-only")
     emit("", 0.9)  # the model is thinking
     emit(message + "\r\n\r\n", 0.6)
 
