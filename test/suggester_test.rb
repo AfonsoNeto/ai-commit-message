@@ -75,25 +75,12 @@ class SuggesterTest < Minitest::Test
   end
 
   def test_generate_commit_message_uses_chat_completions_and_chat_payload
-    request = nil
-    server = TCPServer.new('127.0.0.1', 0)
-    body = openai_chat_response('ok')
-    thread = Thread.new do
-      client = server.accept
-      request = +''
-      request << client.readpartial(4096) until request.include?("\r\n\r\n")
-      client.write("HTTP/1.1 200 OK\r\nContent-Length: #{body.bytesize}\r\nConnection: close\r\n\r\n#{body}")
-      client.close
-    end
-    begin
-      @suggester.generate_commit_message(url: "http://127.0.0.1:#{server.addr[1]}/v1", model: 'm', conventional: true)
-    ensure
-      thread.join
-      server.close
+    request = with_mock_server(openai_chat_response('ok')) do |port|
+      @suggester.generate_commit_message(url: "http://127.0.0.1:#{port}/v1", model: 'm', conventional: true)
     end
 
     assert_includes request, "POST /v1/chat/completions"
-    json_body = JSON.parse(request.split("\r\n\r\n").last)
+    json_body = JSON.parse(request.split("\r\n\r\n", 2).last)
     assert_equal 'm', json_body['model']
     assert_equal 'system', json_body['messages'][0]['role']
     assert_includes json_body['messages'][0]['content'], 'Conventional Commits'
