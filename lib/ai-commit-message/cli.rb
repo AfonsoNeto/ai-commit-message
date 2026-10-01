@@ -41,13 +41,14 @@ module AiCommitMessage
       puts commit_message
       return if options[:message_only]
 
-      prompt = TTY::Prompt.new
-      begin
-        # tty-prompt takes the default on EOF, which would silently commit
-        # in non-interactive runs; treat a closed stdin as "no".
-        confirmed = !$stdin.eof? && prompt.yes?("Commit with this message?", default: true)
-      rescue TTY::Reader::InputInterrupt
-        confirmed = false
+      confirmed = if stdin_has_input?
+        begin
+          TTY::Prompt.new.yes?("Commit with this message?", default: true)
+        rescue TTY::Reader::InputInterrupt
+          false
+        end
+      else
+        false
       end
       return unless confirmed
 
@@ -86,6 +87,17 @@ module AiCommitMessage
     end
 
     private
+
+    # A TTY never reports EOF until Ctrl-D and IO#eof? would block there
+    # waiting for a keystroke, hiding the confirmation prompt; only probe
+    # non-interactive stdin, and only when data is already available.
+    def stdin_has_input?
+      return true if $stdin.tty?
+      return false unless IO.select([$stdin], nil, nil, 0)
+      !$stdin.eof?
+    rescue IOError, SystemCallError
+      false
+    end
 
     def url_to_be_used(options_url)
       options_url || ConfigManager.get_url || DEFAULT_URL
